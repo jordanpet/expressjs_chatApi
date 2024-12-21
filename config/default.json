@@ -1,0 +1,10 @@
+{
+    "dbconfig": {
+        "host": "localhost",
+        "user": "root",
+        "password": "12345678",
+        "database": "expressapi",
+        "timezone": "+01:00",
+        "charset": "utf8mb4"
+    }
+}
