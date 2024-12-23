@@ -108,10 +108,11 @@
      createNumber: (length = 6) => {
         var chars = "123456789"
         var result = "";
-        for (let i = length; i < 20; i++) {
+        for (let i = 0; i < length; i++) {
             result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        return result;
+        const maxLength = 13;
+        return result.slice(0, maxLength);
     },
 
      dlog: (log) => {
