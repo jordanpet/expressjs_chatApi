@@ -8,6 +8,12 @@
  const msg_server_internal_error = "server internal Error"
 
  module.exports = {
+
+
+    ImagePath:() => {
+        return "http://localhost:3004/img/";
+    },
+    
      throwHtmlError: (err, res) => {
         if (!err) {
             dlog("Error object is null or undefined.");
@@ -104,6 +110,13 @@
          }
          return result;
      },
+
+     fileNameGenerate: ( extension) => {
+        var chars = "123456789abcdefghijkmnopqrstwvxyzABCDEFGHIJKMNOPQISTWVXYZ"
+        var result = "";
+        for (let i = 0; i < 10; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+        return serverDateTime("YYYYMMDDHHmmssms") + result + '.' +  extension;
+    },
 
      createNumber: (length = 6) => {
         var chars = "123456789"
