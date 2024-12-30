@@ -27,7 +27,8 @@ function getUserData(user_id, callback) {
             image, 
             device_type, 
             auth_token, 
-            push_token, 
+            push_token,
+            user_type,
             created_date, 
             update_date, 
             status

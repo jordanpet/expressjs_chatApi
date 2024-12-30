@@ -11,7 +11,7 @@
 
 
     ImagePath:() => {
-        return "http://localhost:3004/img/";
+        return "http://192.168.1.2:3004/img/";
     },
     
      throwHtmlError: (err, res) => {
