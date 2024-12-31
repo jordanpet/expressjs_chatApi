@@ -138,7 +138,7 @@ Array.prototype.swap = (x,y) => {
 Array.prototype.insert = (index, item) =>{
   this.splice(index,0,item);
 }
-Array.prototype.replace_null = (replace = '"') => {
+Array.prototype.replace_null = function(replace = '"') {
   return JSON.parse(JSON.stringify(this).replace(/null/g, replace));
 }
 
