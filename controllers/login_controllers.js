@@ -6,13 +6,7 @@ var fs = require('fs');
 const moment = require('moment-timezone');
 var imageServerPath = "./public/img/"
 //app.use(express.json());
-
-const msg_success = "successful";
-const msg_fail = "fail";
-const msg_invalidUserPassword = "invalid username and password";
-const msg_exist_email = " username and password already exist"
-const msg_not_exist = "username and password not exist"
-const msg_update_password = "user password updated successfully"
+var messages = require('./utils/messages');
 
 //HELPER FUNCTIONS
 function getUserData(user_id, callback) {
@@ -90,6 +84,48 @@ function saveImage(imageFile, savePath) {
     })
 }
 
+function checkAccessToken(headerObj, res, callback, require_type = "") {
+    helper.dlog(headerObj.access_token);
+    helper.checkParameterValid(res, headerObj, ["access_token"], () => {
+        db.query(`
+            SELECT 
+                user_id, 
+                name, 
+                email, 
+                password, 
+                mobile, 
+                address, 
+                image, 
+                device_type,
+                auth_token, 
+                user_type,
+                status
+            FROM 
+                user_detail
+            WHERE 
+                auth_token = ? AND status = ?`, [headerObj.access_token, "1"], (err, result) => {
+            if (err) {
+                helper.throwHtmlError(err, res);
+                return;
+            }
+            helper.dlog(result);
+            if (result.length > 0) {
+                if (require_type !== "") {
+                    if (result[0].user_type == require_type) {
+                        return callback(result[0]);
+                    } else { res.json({ "status": "0", "code": "404", "message": "Access denied. Unathorize user access" }) }
+                } else {
+                    return callback(result[0]);
+                }
+            } else {
+                res.json({ "status": "0", "code": "404", "message": "Access denied. Unathorize user access" })
+            }
+        }
+        )
+    })
+}
+
+
 //END-POINT
 module.exports.controllers = (app, io, user_socket_connect_list) => {
 
@@ -134,18 +170,18 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                         // Fetch user data for response
                                         getUserData(iResult.insertId, (status, userObj) => {
                                             if (status) {
-                                                res.json({ status: "1", payload: userObj, message: msg_success });
+                                                res.json({ status: "1", payload: userObj, message: messages.success });
                                             } else {
                                                 console.error('Error fetching user data'); // Log error for debugging
-                                                res.status(500).json({ status: "0", message: msg_fail });
+                                                res.status(500).json({ status: "0", message: messages.fail });
                                             }
                                         });
                                     } else {
-                                        res.status(400).json({ status: "0", message: msg_fail });
+                                        res.status(400).json({ status: "0", message: messages.fail });
                                     }
                                 });
                         } else {
-                            res.status(409).json({ status: "0", message: msg_exist_email });
+                            res.status(409).json({ status: "0", message: messages.existEmail });
                         }
                     });
             });
@@ -176,17 +212,17 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                 getUserData(result.user_id, (fetchStatus, fetchResult) => {
                                     if (fetchStatus) {
                                         fetchResult.auth_token = auth_token;
-                                        res.json({ status: "1", payload: fetchResult, message: msg_success });
+                                        res.json({ status: "1", payload: fetchResult, message: messages.success });
                                     } else {
-                                        res.json({ status: "0", message: msg_fail });
+                                        res.json({ status: "0", message: messages.fail });
                                     }
                                 });
                             } else {
-                                res.json({ status: "0", message: msg_invalidUserPassword });
+                                res.json({ status: "0", message: messages.invalidUserPassword });
                             }
                         });
                 } else {
-                    res.json({ status: "0", message: msg_invalidUserPassword });
+                    res.json({ status: "0", message: messages.invalidUserPassword });
                 }
             });
         });
@@ -219,16 +255,16 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
 
                             if (uresult.affectedRows > 0) {
                                 // Successfully updated reset_code
-                                res.json({ status: "1", message: msg_success });
+                                res.json({ status: "1", message: messages.success });
                             } else {
                                 // Failed to update reset_code, possibly due to an invalid status
-                                res.json({ status: "0", message: msg_fail });
+                                res.json({ status: "0", message: messages.fail });
                             }
                         }
                     );
                 } else {
                     // Email does not exist in the database
-                    res.json({ status: "0", message: msg_not_exist });
+                    res.json({ status: "0", message: messages.existEmail });
                 }
             });
         });
@@ -272,17 +308,17 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                             "user_id": result[0].user_id,
                                             "restCode": NewRestCode
                                         },
-                                        message: msg_success
+                                        message: messages.success
                                     });
                                 } else {
                                     // Failed to update reset_code, possibly due to an invalid status
-                                    res.json({ status: "0", message: msg_fail });
+                                    res.json({ status: "0", message: messages.fail });
                                 }
                             }
                         );
                     } else {
                         // Email or reset code does not exist in the database
-                        res.json({ status: "0", message: msg_not_exist });
+                        res.json({ status: "0", message: messages.existEmail});
                     }
                 });
         });
@@ -304,11 +340,11 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                         return;
                     }
                     if (result.affectedRows > 0) {
-                        res.json({ status: "1", message: msg_update_password });
+                        res.json({ status: "1", message: messages.updatePassword });
                     }
                     else {
                         // Failed to update reset_code, possibly due to an invalid status
-                        res.json({ status: "0", message: msg_fail });
+                        res.json({ status: "0", message: messages.fail });
                     }
 
                 });
@@ -342,15 +378,15 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                     // Successfully updated reset_code
                                     getUserData(userObj.user_id, (status, userObj) => {
                                         if (status) {
-                                            res.json({ status: "1", payload: userObj, message: msg_success });
+                                            res.json({ status: "1", payload: userObj, message: messages.success });
                                         } else {
                                             console.error('Error fetching user data'); // Log error for debugging
-                                            res.status(500).json({ status: "0", message: msg_fail });
+                                            res.status(500).json({ status: "0", message: messages.fail });
                                         }
                                     });
                                 } else {
                                     // Failed to update reset_code, possibly due to an invalid status
-                                    res.json({ status: "0", message: msg_fail });
+                                    res.json({ status: "0", message: messages.fail });
                                 }
                             }
                         );
@@ -391,7 +427,7 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
 
                         res.json({
                             status: "1", payload: { "name": name, "address": address, "image": helper.ImagePath() + imageFileName },
-                            message: msg_success
+                            message: messages.success
                         });
                     }
                 })
@@ -438,7 +474,7 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                 })
                 res.json({
                     status: "1", payload: { "name": name, "address": address, "image": fullImageNamePathArr },
-                    message: msg_success
+                    message: messages.success
                 });
 
 
@@ -486,14 +522,14 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                             if (result) {
                                                 getUserData(userObj.user_id, (status, userObj) => {
                                                     if (status) {
-                                                        res.json({ status: "1", payload: userObj, message: msg_success });
+                                                        res.json({ status: "1", payload: userObj, message: messages.success });
                                                     } else {
                                                         console.error('Error fetching user data'); // Log error for debugging
-                                                        res.status(500).json({ status: "0", message: msg_fail });
+                                                        res.status(500).json({ status: "0", message: messages.fail });
                                                     }
                                                 });
                                             } else {
-                                                res.json({ "status": "0", "message": msg_fail });
+                                                res.json({ "status": "0", "message": messages.fail });
                                             }
                                         });
     
@@ -508,46 +544,5 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
     
         })
     
-}
-
-function checkAccessToken(headerObj, res, callback, require_type = "") {
-    helper.dlog(headerObj.access_token);
-    helper.checkParameterValid(res, headerObj, ["access_token"], () => {
-        db.query(`
-            SELECT 
-                user_id, 
-                name, 
-                email, 
-                password, 
-                mobile, 
-                address, 
-                image, 
-                device_type,
-                auth_token, 
-                user_type,
-                status
-            FROM 
-                user_detail
-            WHERE 
-                auth_token = ? AND status = ?`, [headerObj.access_token, "1"], (err, result) => {
-            if (err) {
-                helper.throwHtmlError(err, res);
-                return;
-            }
-            helper.dlog(result);
-            if (result.length > 0) {
-                if (require_type !== "") {
-                    if (result[0].user_type == require_type) {
-                        return callback(result[0]);
-                    } else { res.json({ "status": "0", "code": "404", "message": "Access denied. Unathorize user access" }) }
-                } else {
-                    return callback(result[0]);
-                }
-            } else {
-                res.json({ "status": "0", "code": "404", "message": "Access denied. Unathorize user access" })
-            }
-        }
-        )
-    })
 }
 

@@ -2,14 +2,13 @@ var helper = require('./../helpers/db_helpers')
 var db = require('./../helpers/db_helpers');
 const  Socket  = require('socket.io');
 var Socket_list = {};  // Initialize this object to store socket IDs for users
+var messages = require('./utils/messages');
 
 
 // socket_controllers.js
 module.exports.controllers = (app, io, user_socket_connect_list) => {
   var response = '';
-  const msg_success = "successful";
-  const msg_fail = "fail";
-  const msg_invalidUser = "invalid username and password"
+ 
 
   io.on('connection', (client) =>{
     client.on('updateSocket', (data) => {
@@ -25,9 +24,9 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
           if(result.length > 0) {
             Socket_list['us_' + jsonObj.id] = {'socket_id':client.id}
             helper.dlog(Socket_list);
-            response = {"success": "true", "status": "1", "message": msg_success }
+            response = {"success": "true", "status": "1", message: messages.success }
           }else {
-            response = {"success": "false", "status": "0", "message":msg_invalidUser }
+            response = {"success": "false", "status": "0", message:messages.invalidUserPassword }
           }
           client.emit('updateSocket', response);
         } )

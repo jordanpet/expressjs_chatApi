@@ -6,25 +6,7 @@ var fs = require('fs');
 const moment = require('moment-timezone');
 var imageServerPath = "./public/img/"
 //app.use(express.json());
-
-const msg_success = "Successful";
-const msg_fail = "Fail";
-const msg_invalidUserPassword = "Invalid username and password";
-const msg_exist_email = " Username and password already exist";
-const msg_not_exist = "Username and password not exist";
-const msg_update_password = "User password updated successfully";
-const msg_add_Restaurant = "Restaurant added successfully";
-const msg_update_Restaurant = "Restaurant updated successfully";
-const msg_delete_Restaurant = "Restaurant deleted successfully";
-const msg_not_found = "Restaurant not found or already deleted.";
-const msg_add_Restaurant_offer = "Restaurant offer added successfully";
-const msg_update_Restaurant_offer = "Restaurant offer updated successfully";
-const msg_delete_Restaurant_offer = "Restaurant offer deleted successfully"
-const msg_updated = "Updated successfully";
-const msg_delete = " Deleted successfully";
-const msg_add = " Added successfully";
-
-
+var messages = require('./utils/messages');
 
 //HELPER FUNCTIONS
 function getUserData(user_id, callback) {
@@ -143,9 +125,9 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                             return;
                                         }
                                         if (result) {
-                                            res.json({ "status": "1", "message": msg_add_Restaurant });
+                                            res.json({ "status": "1", "message":  messages.addRestaurant });
                                         } else {
-                                            res.json({ "status": "0", "message": msg_fail });
+                                            res.json({ "status": "0", "message":  messages.fail });
                                         }
                                     });
 
@@ -185,10 +167,10 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
 
                             if (uresult.affectedRows > 0) {
                                 // Successfully updated reset_code
-                                res.json({ status: "1", message: msg_update_Restaurant });
+                                res.json({ status: "1", message: messages.updateRestaurant });
                             } else {
                                 // Failed to update reset_code, possibly due to an invalid status
-                                res.json({ status: "0", message: msg_fail });
+                                res.json({ status: "0", message: messages.fail });
                             }
                         }
                     );
@@ -235,9 +217,9 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                             return;
                                         }
                                         if (result) {
-                                            res.json({ "status": "1", "message": msg_success });
+                                            res.json({ "status": "1", "message": messages.success });
                                         } else {
-                                            res.json({ "status": "0", "message": msg_fail });
+                                            res.json({ "status": "0", "message": messages.fail });
                                         }
                                     });
 
@@ -281,7 +263,7 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                     return;
                 }
 
-                res.json({ status: "1", payload: result.replace_null(), message: msg_success });
+                res.json({ status: "1", payload: result.replace_null(), message: messages.success });
             });
         }, "1");
     });
@@ -324,15 +306,15 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                         }
     
                                         if (uresult.affectedRows > 0) {
-                                            res.json({ status: "1", message: msg_delete_Restaurant });
+                                            res.json({ status: "1", message: messages.deleteRestaurant });
                                         } else {
-                                            res.json({ status: "0", message: msg_fail });
+                                            res.json({ status: "0", message: messages.fail });
                                         }
                                     }
                                 );
                             });
                         } else {
-                            res.json({ status: "0", message: msg_not_found });
+                            res.json({ status: "0", message: messages.notFound });
                         }
                     }
                 );
@@ -376,9 +358,9 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                         return;
                                     }
                                     if (result) {
-                                        res.json({ "status": "1", "message": msg_add_Restaurant_offer });
+                                        res.json({ "status": "1", "message": messages.addRestaurantOffer });
                                     } else {
-                                        res.json({ "status": "0", "message": msg_fail });
+                                        res.json({ "status": "0", "message": messages.fail });
                                     }
                                 });
 
@@ -408,7 +390,6 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                 helper.dlog(files);
 
                 helper.checkParameterValid(res, reqObj, ["offer_id", "name", "restaurant_id", "start_date", "end_date"], () => {
-
 
                     var condition = "";
                     var imageFileName = "";
@@ -440,20 +421,16 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                 return;
                             }
                             if (result.affectedRows > 0) {
-                                res.json({ "status": "1", "message": msg_update_Restaurant_offer });
+                                res.json({ "status": "1", "message": messages.updateRestaurantOffer });
                             } else {
-                                res.json({ "status": "0", "message": msg_fail });
+                                res.json({ "status": "0", "message": messages.fail });
                             }
                         }
                     );
-
-
-
                 })
 
             })
         }, "1")
-
     })
 
     app.post('/api/admin/restaurant_offer_delete', (req, res) => {
@@ -477,16 +454,15 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                         }
         
                         if (uresult.affectedRows > 0) {
-                            res.json({ status: "1", message: msg_delete_Restaurant_offer });
+                            res.json({ status: "1", message: messages.deleteRestaurantOffer });
                         } else {
-                            res.json({ status: "0", message: "No matching record found." });
+                            res.json({ status: "0", message: messages.notFound });
                         }
                     }
                 );
         
             });
         }, "1");
-        
     });
 
     app.post('/api/admin/restaurant_offer_active_inactive', (req, res) => {
@@ -510,10 +486,10 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
 
                         if (uresult.affectedRows > 0) {
                             // Successfully updated reset_code
-                            res.json({ status: "1", message: msg_success });
+                            res.json({ status: "1", message: messages.success });
                         } else {
 
-                            res.json({ status: "0", message: msg_fail });
+                            res.json({ status: "0", message: messages.fail });
                         }
                     }
                 );
@@ -531,14 +507,14 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
 
                 db.query(`
                     SELECT offer_id, name, restaurant_id, image, start_date, end_time,status, created_date, updated_date, status FROM 
-                offer_details WHERE status = ? ` ,
+                offer_details WHERE status = ? `,
                     ["1"], (err, result) => {
                         if (err) {
                             // Log and handle database errors
                             helper.throwHtmlError(err, res);
                             return;
                         }
-                        res.json({ status: "1", payload: result.replace_null(), message: msg_success });
+                        res.json({ status: "1", payload: result.replace_null(), message: messages.success });
 
                     }
                 );
@@ -563,9 +539,9 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                             return;
                         }
                         if (result.affectedRows > 0) {
-                            res.json({ status: "1", message: msg_add });
+                            res.json({ status: "1", message: messages.added });
                         } else {
-                            res.json({ status: "0", message: msg_fail });
+                            res.json({ status: "0", message: messages.fail });
                         }
 
                     }
@@ -589,7 +565,7 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                         helper.throwHtmlError(err, res);
                         return;
                     }
-                    res.json({ status: "1", payload: result.replace_null(), message: msg_success });
+                    res.json({ status: "1", payload: result.replace_null(), message: messages.success });
 
                 }
             );
@@ -618,9 +594,9 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                             return;
                         }
                         if (result.affectedRows > 0) {
-                            res.json({ status: "1", message: msg_updated });
+                            res.json({ status: "1", message: messages.updated });
                         } else {
-                            res.json({ status: "0", message: msg_fail });
+                            res.json({ status: "0", message: messages.ail });
                         }
                     }
                 );
@@ -646,9 +622,9 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                             return;
                         }
                         if (result) {
-                            res.json({ status: "1", message: msg_delete });
+                            res.json({ status: "1", message: messages.deleted });
                         } else {
-                            res.json({ status: "0", message: msg_fail });
+                            res.json({ status: "0", message: messages.fail });
                         }
                     }
                 );
