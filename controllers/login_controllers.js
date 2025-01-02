@@ -315,6 +315,50 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
         });
     });
 
+     app.post('/api/update_profile', (req, res) => {
+            helper.dlog(req.body);
+            var reqObj = req.body;
+    
+            checkAccessToken(req.headers, res, (userObj) => {
+                helper.checkParameterValid(res, reqObj, ["name", "mobile",  "address"], () => {
+
+
+
+                        db.query(
+                            `UPDATE user_detail SET name = ?, mobile = ?,
+                            address = ?, updated_date = NOW() WHERE user_id = ? AND status = ?  `,
+                            [reqObj.name[0], reqObj.mobile[0],
+                             reqObj.address[0], reqObj.city[0],
+                            reqObj.state[0], reqObj.latitude[0], reqObj.longitude[0],
+                            reqObj.delivery_cost[0], reqObj.created_date, reqObj.user_id, "1"],
+                            (err, uresult) => {
+                                if (err) {
+                                    // Log and handle database errors
+                                    helper.throwHtmlError(err, res);
+                                    return;
+                                }
+    
+                                if (uresult.affectedRows > 0) {
+                                    // Successfully updated reset_code
+                                    getUserData(userObj.user_id, (status, userObj) => {
+                                        if (status) {
+                                            res.json({ status: "1", payload: userObj, message: msg_success });
+                                        } else {
+                                            console.error('Error fetching user data'); // Log error for debugging
+                                            res.status(500).json({ status: "0", message: msg_fail });
+                                        }
+                                    });
+                                } else {
+                                    // Failed to update reset_code, possibly due to an invalid status
+                                    res.json({ status: "0", message: msg_fail });
+                                }
+                            }
+                        );
+    
+                    });
+            });
+        });
+
     app.post('/api/upload_image', (req, res) => {
         var form = new multiparty.Form();
         form.parse(req, (err, reqObj, files) => {
@@ -400,6 +444,110 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
 
             }
         })
+    })
+
+    app.post('/api/update_image', (req, res) => {
+            helper.dlog(req.body);
+            const reqObj = req.body;
+    
+            var form = new multiparty.Form();
+            checkAccessToken(req.headers, res, (userObj) => {
+                form.parse(req, (err, reqObj, files) => {
+                    if (err) {
+                        helper.throwHtmlError(err, res);
+                        return;
+                    }
+                    helper.dlog("------------------Parameter--------------")
+                    helper.dlog(reqObj);
+                    helper.dlog("------------------Files--------------")
+                    helper.dlog(files);
+    
+                    
+                        helper.checkParameterValid(res, files, ["image"], () => {
+    
+                            var extension = files.image[0].originalFilename.substring(files.image[0].originalFilename.lastIndexOf(".") + 1)
+                            var imageFileName = "user/" + helper.fileNameGenerate(extension);
+    
+                            var newPath = imageServerPath + imageFileName;
+    
+                            fs.rename(files.image[0].path, newPath, (err) => {
+                                if (err) {
+                                    helper.throwHtmlError(err, res);
+                                    return;
+                                } else {
+                                    db.query(`UPDATE user_detail SET image = ?, updated_date = NOW() 
+                                            WHERE 
+                                            user_id = ? AND status = ?`,
+                                        [imageFileName, reqObj.user_id[0], "1"], (err, result) => {
+                                            if (err) {
+                                                helper.throwHtmlError(err, res);
+                                                return;
+                                            }
+                                            if (result) {
+                                                getUserData(userObj.user_id, (status, userObj) => {
+                                                    if (status) {
+                                                        res.json({ status: "1", payload: userObj, message: msg_success });
+                                                    } else {
+                                                        console.error('Error fetching user data'); // Log error for debugging
+                                                        res.status(500).json({ status: "0", message: msg_fail });
+                                                    }
+                                                });
+                                            } else {
+                                                res.json({ "status": "0", "message": msg_fail });
+                                            }
+                                        });
+    
+                                }
+                            })
+    
+                        })
+                    
+    
+                })
+            })
+    
+        })
+    
+}
+
+function checkAccessToken(headerObj, res, callback, require_type = "") {
+    helper.dlog(headerObj.access_token);
+    helper.checkParameterValid(res, headerObj, ["access_token"], () => {
+        db.query(`
+            SELECT 
+                user_id, 
+                name, 
+                email, 
+                password, 
+                mobile, 
+                address, 
+                image, 
+                device_type,
+                auth_token, 
+                user_type,
+                status
+            FROM 
+                user_detail
+            WHERE 
+                auth_token = ? AND status = ?`, [headerObj.access_token, "1"], (err, result) => {
+            if (err) {
+                helper.throwHtmlError(err, res);
+                return;
+            }
+            helper.dlog(result);
+            if (result.length > 0) {
+                if (require_type !== "") {
+                    if (result[0].user_type == require_type) {
+                        return callback(result[0]);
+                    } else { res.json({ "status": "0", "code": "404", "message": "Access denied. Unathorize user access" }) }
+                } else {
+                    return callback(result[0]);
+                }
+            } else {
+                res.json({ "status": "0", "code": "404", "message": "Access denied. Unathorize user access" })
+            }
+        }
+        )
     })
 }
 

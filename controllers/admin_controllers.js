@@ -7,16 +7,23 @@ const moment = require('moment-timezone');
 var imageServerPath = "./public/img/"
 //app.use(express.json());
 
-const msg_success = "successful";
-const msg_fail = "fail";
-const msg_invalidUserPassword = "invalid username and password";
-const msg_exist_email = " username and password already exist";
-const msg_not_exist = "username and password not exist";
-const msg_update_password = "user password updated successfully";
+const msg_success = "Successful";
+const msg_fail = "Fail";
+const msg_invalidUserPassword = "Invalid username and password";
+const msg_exist_email = " Username and password already exist";
+const msg_not_exist = "Username and password not exist";
+const msg_update_password = "User password updated successfully";
 const msg_add_Restaurant = "Restaurant added successfully";
 const msg_update_Restaurant = "Restaurant updated successfully";
 const msg_delete_Restaurant = "Restaurant deleted successfully";
 const msg_not_found = "Restaurant not found or already deleted.";
+const msg_add_Restaurant_offer = "Restaurant offer added successfully";
+const msg_update_Restaurant_offer = "Restaurant offer updated successfully";
+const msg_delete_Restaurant_offer = "Restaurant offer deleted successfully"
+const msg_updated = "Updated successfully";
+const msg_delete = " Deleted successfully";
+const msg_add = " Added successfully";
+
 
 
 //HELPER FUNCTIONS
@@ -245,40 +252,40 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
 
     })
 
-            //List All or One by id 
+    //List All or One by id 
     app.post('/api/admin/restaurant_list', (req, res) => {
         helper.dlog(req.body);
         var reqObj = req.body;
-    
+
         checkAccessToken(req.headers, res, (userObj) => {
             // Check if 'restaurant_id' is provided
             const query = reqObj.restaurant_id
-                      //check all 
+                //check all 
                 ? `SELECT restaurant_id, name, image, shop_type, food_type, address,
                    city, state, latitude, longitude, delivery_cost, updated_date, status 
                    FROM restaurants WHERE restaurant_id = ? AND status = ?`
-                      // check by id
+                // check by id
                 : `SELECT restaurant_id, name, image, shop_type, food_type, address,
                    city, state, latitude, longitude, delivery_cost, updated_date, status 
                    FROM restaurants WHERE status = ?`;
-    
+
             // Parameters for the query
-            const params = reqObj.restaurant_id 
-                ? [reqObj.restaurant_id, "1"] 
+            const params = reqObj.restaurant_id
+                ? [reqObj.restaurant_id, "1"]
                 : ["1"];
-    
+
             db.query(query, params, (err, result) => {
                 if (err) {
                     // Log and handle database errors
                     helper.throwHtmlError(err, res);
                     return;
                 }
-    
+
                 res.json({ status: "1", payload: result.replace_null(), message: msg_success });
             });
         }, "1");
-    }); 
-    
+    });
+
     app.post('/api/admin/restaurant_delete', (req, res) => {
         helper.dlog(req.body);
         var reqObj = req.body;
@@ -303,13 +310,13 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                             fs.unlink(imagePath, (err) => {
                                 if (err) {
                                     helper.throwHtmlError(err);
-                                    // You can choose to log this and still proceed with the restaurant deletion
                                 }
     
-                                // Delete the restaurant from the database
+                                // Update the restaurant status in the database
                                 db.query(
-                                    `DELETE FROM restaurants WHERE restaurant_id = ? AND status = ?`,
-                                    [reqObj.restaurant_id, "1"],
+                                    `UPDATE restaurants SET status = ?, updated_date = NOW() 
+                                    WHERE restaurant_id = ? AND status = ?`,
+                                    ["2", reqObj.restaurant_id, "1"],
                                     (err, uresult) => {
                                         if (err) {
                                             helper.throwHtmlError(err, res);
@@ -333,6 +340,322 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
         }, "1");
     });
     
+    app.post('/api/admin/restaurant_offer_add', (req, res) => {
+        var form = new multiparty.Form();
+        checkAccessToken(req.headers, res, (userObj) => {
+            form.parse(req, (err, reqObj, files) => {
+                if (err) {
+                    helper.throwHtmlError(err, res);
+                    return;
+                }
+                helper.dlog("------------------Parameter--------------")
+                helper.dlog(reqObj);
+                helper.dlog("------------------Files--------------")
+                helper.dlog(files);
+
+                helper.checkParameterValid(res, reqObj, ["name", "restaurant_id", "start_date", "end_time"], () => {
+
+                    helper.checkParameterValid(res, files, ["image"], () => {
+                        var extension = files.image[0].originalFilename.substring(files.image[0].originalFilename.lastIndexOf(".") + 1)
+                        var imageFileName = "offer/" + helper.fileNameGenerate(extension);
+
+                        var newPath = imageServerPath + imageFileName;
+
+                        fs.rename(files.image[0].path, newPath, (err) => {
+                            if (err) {
+                                helper.throwHtmlError(err, res);
+                                return;
+                            } else {
+                                db.query(`INSERT INTO offer_details(name, image, restaurant_id, start_date, end_time, created_date, updated_date, status) 
+                                    VALUES (?, ?, ?, ?, ?, NOW(), NOW(), ?)`, [
+                                    reqObj.name[0], imageFileName, reqObj.restaurant_id[0],
+                                    reqObj.start_date[0], reqObj.end_time[0], "1"
+                                ], (err, result) => {
+                                    if (err) {
+                                        helper.throwHtmlError(err, res);
+                                        return;
+                                    }
+                                    if (result) {
+                                        res.json({ "status": "1", "message": msg_add_Restaurant_offer });
+                                    } else {
+                                        res.json({ "status": "0", "message": msg_fail });
+                                    }
+                                });
+
+
+                            }
+                        })
+
+                    })
+                })
+
+            })
+        }, "1")
+
+    })
+
+    app.post('/api/admin/restaurant_offer_update', (req, res) => {
+        var form = new multiparty.Form();
+        checkAccessToken(req.headers, res, (userObj) => {
+            form.parse(req, (err, reqObj, files) => {
+                if (err) {
+                    helper.throwHtmlError(err, res);
+                    return;
+                }
+                helper.dlog("------------------Parameter--------------")
+                helper.dlog(reqObj);
+                helper.dlog("------------------Files--------------")
+                helper.dlog(files);
+
+                helper.checkParameterValid(res, reqObj, ["offer_id", "name", "restaurant_id", "start_date", "end_date"], () => {
+
+
+                    var condition = "";
+                    var imageFileName = "";
+                    if (files.image && files.image[0]) {
+                        var extension = files.image[0].originalFilename.substring(files.image[0].originalFilename.lastIndexOf(".") + 1)
+                        imageFileName = "offer/" + helper.fileNameGenerate(extension);
+                        var newPath = imageServerPath + imageFileName;
+
+                        condition = ", image = '" + imageFileName + "'";
+                        fs.rename(files.image[0].path, newPath, (err) => {
+                            if (err) {
+                                helper.throwHtmlError(err);
+                                return;
+                            }
+                        })
+
+                    }
+
+                    db.query(
+                        `UPDATE offer_details 
+                         SET name = ?, start_date = ?, end_time = ?, updated_date = NOW(), status = 1 ${condition} 
+                         WHERE restaurant_id = ? AND status < ? AND offer_id = ?`,
+                        [
+                            reqObj.name[0], reqObj.start_date[0], reqObj.end_date[0], reqObj.restaurant_id[0], "2", reqObj.offer_id[0]
+                        ],
+                        (err, result) => {
+                            if (err) {
+                                helper.throwHtmlError(err, res);
+                                return;
+                            }
+                            if (result.affectedRows > 0) {
+                                res.json({ "status": "1", "message": msg_update_Restaurant_offer });
+                            } else {
+                                res.json({ "status": "0", "message": msg_fail });
+                            }
+                        }
+                    );
+
+
+
+                })
+
+            })
+        }, "1")
+
+    })
+
+    app.post('/api/admin/restaurant_offer_delete', (req, res) => {
+        helper.dlog(req.body);
+        const reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["offer_id"], () => {
+        
+                console.log('Offer ID:', reqObj.offer_id);
+                const offerId = parseInt(reqObj.offer_id); // Ensure correct data type
+        
+                db.query(`
+                    UPDATE offer_details 
+                    SET status = 2
+                    WHERE offer_id = ?`,
+                    [offerId], (err, uresult) => {
+                        if (err) {
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+        
+                        if (uresult.affectedRows > 0) {
+                            res.json({ status: "1", message: msg_delete_Restaurant_offer });
+                        } else {
+                            res.json({ status: "0", message: "No matching record found." });
+                        }
+                    }
+                );
+        
+            });
+        }, "1");
+        
+    });
+
+    app.post('/api/admin/restaurant_offer_active_inactive', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["offer_id", "is_active"], () => {
+
+                var restCode = helper.createNumber();
+                db.query(`
+                    UPDATE offer_details 
+                    SET status = ?, updated_date = NOW() 
+                    WHERE offer_id = ? AND (status = '1' OR status = '0')`,
+                    [reqObj.is_active, reqObj.offer_id, "1"], (err, uresult) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+
+                        if (uresult.affectedRows > 0) {
+                            // Successfully updated reset_code
+                            res.json({ status: "1", message: msg_success });
+                        } else {
+
+                            res.json({ status: "0", message: msg_fail });
+                        }
+                    }
+                );
+
+            });
+        }, "1");
+    });
+
+    app.post('/api/admin/restaurant_offer_list', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["offer_id"], () => {
+
+                db.query(`
+                    SELECT offer_id, name, restaurant_id, image, start_date, end_time,status, created_date, updated_date, status FROM 
+                offer_details WHERE status = ? ` ,
+                    ["1"], (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        res.json({ status: "1", payload: result.replace_null(), message: msg_success });
+
+                    }
+                );
+
+            });
+        }, "1");
+    });
+
+    app.post('/api/admin/about_add', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["details", "display_order"], () => {
+
+                db.query(`
+                    INSERT INTO about_detail (details, display_order, created_date, updated_date) VALUE (?,?,NOW(), NOW())` ,
+                    [reqObj.details, reqObj.display_order], (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        if (result.affectedRows > 0) {
+                            res.json({ status: "1", message: msg_add });
+                        } else {
+                            res.json({ status: "0", message: msg_fail });
+                        }
+
+                    }
+                );
+
+            });
+        }, "1");
+    });
+
+    app.post('/api/admin/about_list', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+
+            db.query(`
+                    SELECT about_id, details FROM about_detail WHERE status = ? ORDER BY display_order ` ,
+                ["1"], (err, result) => {
+                    if (err) {
+                        // Log and handle database errors
+                        helper.throwHtmlError(err, res);
+                        return;
+                    }
+                    res.json({ status: "1", payload: result.replace_null(), message: msg_success });
+
+                }
+            );
+
+        }, "1");
+    });
+
+    app.post('/api/admin/about_update', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+    
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["about_id", "details", "display_order"], () => {
+    
+                db.query(
+                    `
+                    UPDATE about_detail 
+                    SET details = ?, display_order = ?, updated_date = NOW() 
+                    WHERE about_id = ? AND status = ?
+                    `,
+                    [reqObj.details, reqObj.display_order, reqObj.about_id, "1"], 
+                    (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        if (result.affectedRows > 0) {
+                            res.json({ status: "1", message: msg_updated });
+                        } else {
+                            res.json({ status: "0", message: msg_fail });
+                        }
+                    }
+                );
+    
+            });
+        }, "1");
+    });
+    
+    app.post('/api/admin/about_delete', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["about_id"], () => {
+
+                db.query(`
+                    UPDATE about_detail SET status = ?,  updated_date = NOW() 
+                    WHERE about_id = ? AND status = ?` ,
+                    ["2", reqObj.about_id, "1"], (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        if (result) {
+                            res.json({ status: "1", message: msg_delete });
+                        } else {
+                            res.json({ status: "0", message: msg_fail });
+                        }
+                    }
+                );
+
+            });
+        }, "1");
+    });
 }
 
 
