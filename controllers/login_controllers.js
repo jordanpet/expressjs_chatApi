@@ -6,7 +6,7 @@ var fs = require('fs');
 const moment = require('moment-timezone');
 var imageServerPath = "./public/img/"
 //app.use(express.json());
-var messages = require('./utils/messages');
+var messages = require('/Users/mac/my-express-app/utils/messages.js');
 
 //HELPER FUNCTIONS
 function getUserData(user_id, callback) {

@@ -2,7 +2,7 @@ var helper = require('./../helpers/db_helpers')
 var db = require('./../helpers/db_helpers');
 const  Socket  = require('socket.io');
 var Socket_list = {};  // Initialize this object to store socket IDs for users
-var messages = require('./utils/messages');
+var messages = require('/Users/mac/my-express-app/utils/messages.js');
 
 
 // socket_controllers.js
