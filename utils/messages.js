@@ -25,6 +25,13 @@ const messages = {
   deleteMenu: "Menu deleted successfully",
   addMenuItem: "Menu added successfully",
   updateMenuItem: "Menu updated successfully",
-  deleteMenuItem: "Menu deleted successfully"
+  deleteMenuItem: "Menu deleted successfully",
+  addPortion: "Portion added successfully",
+  updatePortion: "Portion updated successfully",
+  deletePortion: "Portion deleted successfully",
+  addIngredient : "Ingredient added successfully",
+  updateIngredient: "Ingredient updated successfully",
+  deleteIngredient: "Ingredient deleted successfully"
+
 }; 
 module.exports =  messages;

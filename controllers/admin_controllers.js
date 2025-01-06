@@ -596,7 +596,7 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                         if (result.affectedRows > 0) {
                             res.json({ status: "1", message: messages.updated });
                         } else {
-                            res.json({ status: "0", message: messages.ail });
+                            res.json({ status: "0", message: messages.fail });
                         }
                     }
                 );
@@ -1002,7 +1002,7 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
                                         } else {
                                             res.json({ "status": "0", "message": messages.fail });
                                         }
-                                    });                                    
+                                    });
                                 }
                             })
 
@@ -1124,6 +1124,277 @@ module.exports.controllers = (app, io, user_socket_connect_list) => {
 
                 }
             );
+        }, "1");
+    });
+
+    app.post('/api/admin/portion_add', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["name", "menu_item_id", "additional_price"], () => {
+
+                db.query(`
+                    INSERT INTO portion_details(menu_item_id, name, additional_price, created_date, update_date) 
+                    VALUES (?, ?, ?, NOW(), NOW())`,
+                    [reqObj.menu_item_id, reqObj.name, reqObj.additional_price],
+                    (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        if (result.affectedRows > 0) {
+                            res.json({ status: "1", message: messages.addPortion });
+                        } else {
+                            res.json({ status: "0", message: messages.fail });
+                        }
+                    }
+                );
+
+            });
+        }, "1");
+    });
+
+    app.post('/api/admin/portion_update', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["portion_id", "name", "menu_item_id", "additional_price"], () => {
+
+                db.query(
+                    `
+                    UPDATE portion_details 
+                    SET name = ?,menu_item_id = ?,additional_price = ?, update_date = NOW() 
+                    WHERE portion_id = ? AND status = ?
+                    `,
+                    [reqObj.name, reqObj.menu_item_id, reqObj.additional_price, reqObj.portion_id, "1"],
+                    (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        if (result.affectedRows > 0) {
+                            res.json({ status: "1", message: messages.updatePortion });
+                        } else {
+                            res.json({ status: "0", message: messages.fail });
+                        }
+                    }
+                );
+
+            });
+        }, "1");
+    });
+
+    app.post('/api/admin/portion_delete', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["portion_id"], () => {
+
+                db.query(`
+                    UPDATE portion_details SET status = ?,  update_date = NOW() 
+                    WHERE portion_id = ? AND status = ?` ,
+                    ["2", reqObj.portion_id, "1"], (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        if (result) {
+                            res.json({ status: "1", message: messages.deletePortion });
+                        } else {
+                            res.json({ status: "0", message: messages.fail });
+                        }
+                    }
+                );
+
+            });
+        }, "1");
+    });
+
+    app.post('/api/admin/portion_list_all', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+
+            db.query(`
+                    SELECT portion_id,menu_item_id, name, additional_price, created_date, update_date
+                     FROM portion_details WHERE status = ?` ,
+                ["1"], (err, result) => {
+                    if (err) {
+                        // Log and handle database errors
+                        helper.throwHtmlError(err, res);
+                        return;
+                    }
+                    res.json({ status: "1", payload: result.replace_null(), message: messages.success });
+
+                }
+            );
+
+        }, "1");
+    });
+
+    app.post('/api/admin/portion_list_by_id', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["menu_item_id"], () => {
+                db.query(`
+                    SELECT portion_id,menu_item_id, name, additional_price, created_date, update_date
+                     FROM portion_details WHERE "menu_item_id = ? AND status = ?` ,
+                    [reqObj.menu_item_id, "1"], (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        res.json({ status: "1", payload: result.replace_null(), message: messages.success });
+
+                    }
+                );
+            });
+
+        }, "1");
+    });
+
+    app.post('/api/admin/ingredient_add', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, [ "menu_id","name", "additional_price"], () => {
+
+                db.query(`
+                    INSERT INTO ingredient_detail(menu_id, name, additional_price, created_date, update_date) 
+                    VALUES (?, ?, ?, NOW(), NOW())`,
+                    [reqObj.menu_id, reqObj.name, reqObj.additional_price],
+                    (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        if (result.affectedRows > 0) {
+                            res.json({ status: "1", message: messages.addIngredient });
+                        } else {
+                            res.json({ status: "0", message: messages.fail });
+                        }
+                    }
+                );
+
+            });
+        }, "1");
+    });
+
+    app.post('/api/admin/ingredient_update', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["ingredient_id", "name", "menu_id", "additional_price"], () => {
+
+                db.query(
+                    `
+                    UPDATE ingredient_detail
+                    SET name = ?,menu_id = ?,additional_price = ?, update_date = NOW() 
+                    WHERE ingredient_id = ? AND status = ?`,
+                    [reqObj.name, reqObj.menu_id, reqObj.additional_price, reqObj.ingredient_id, "1"],
+                    (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        if (result.affectedRows > 0) {
+                            res.json({ status: "1", message: messages.updateIngredient});
+                        } else {
+                            res.json({ status: "0", message: messages.fail });
+                        }
+                    }
+                );
+
+            });
+        }, "1");
+    });
+
+    app.post('/api/admin/ingredient_delete', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["ingredient_id"], () => {
+
+                db.query(`
+                    UPDATE ingredient_detail SET status = ?,  update_date = NOW() 
+                    WHERE ingredient_id = ? AND status = ?` ,
+                    ["2", reqObj.portion_id, "1"], (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        if (result) {
+                            res.json({ status: "1", message: messages.deleteIngredient});
+                        } else {
+                            res.json({ status: "0", message: messages.fail });
+                        }
+                    }
+                );
+
+            });
+        }, "1");
+    });
+
+    app.post('/api/admin/ingredient_list_all', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+
+            db.query(`
+                    SELECT ingredient_id,menu_id, name, additional_price, created_date, update_date
+                     FROM ingredient_detail WHERE status = ?` ,
+                ["1"], (err, result) => {
+                    if (err) {
+                        // Log and handle database errors
+                        helper.throwHtmlError(err, res);
+                        return;
+                    }
+                    res.json({ status: "1", payload: result.replace_null(), message: messages.success });
+
+                }
+            );
+
+        }, "1");
+    });
+
+    app.post('/api/admin/ingredient_list_by_id', (req, res) => {
+        helper.dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.checkParameterValid(res, reqObj, ["menu_id"], () => {
+                db.query(`
+                    SELECT ingredient_id,menu_id, name, additional_price, created_date, update_date
+                     FROM ingredient_detail WHERE menu_id = ? AND status = ?` ,
+                    [reqObj.menu_id, "1"], (err, result) => {
+                        if (err) {
+                            // Log and handle database errors
+                            helper.throwHtmlError(err, res);
+                            return;
+                        }
+                        res.json({ status: "1", payload: result.replace_null(), message: messages.success });
+
+                    }
+                );
+            });
+
         }, "1");
     });
 }
